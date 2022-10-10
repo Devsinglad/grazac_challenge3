@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/auth/signin.dart';
+import '../screens/homeScreen.dart';
 import 'classModel.dart';
 
 class ApiDB extends ChangeNotifier {
@@ -34,7 +36,8 @@ class ApiDB extends ChangeNotifier {
   var userEmail;
   var firstname;
   var lastName;
-  var rep;
+  var Response;
+  var accountNumber;
   Future<void> sharedPreferences() async {
     final storage = await SharedPreferences.getInstance();
     token = await storage.getString('token');
@@ -69,7 +72,7 @@ class ApiDB extends ChangeNotifier {
     };
     notifyListeners();
     try {
-      var rep = await dio.post(
+      Response = await dio.post(
         'https://halat-mobile-bank-app.herokuapp.com/api/v1/createUser',
         data: payload,
         options: Options(
@@ -78,22 +81,48 @@ class ApiDB extends ChangeNotifier {
         ),
       );
 
-      if (rep.statusCode == 200 || rep.statusCode == 201) {
-        print('response: ${rep.data}');
-        print('status:${rep.statusCode}');
-      }
-      var responseData = jsonDecode(rep.data);
-      final storage = await SharedPreferences.getInstance();
-      storage.setString('token', responseData['access_token']);
-      storage.setString('phoneNumber', phoneNumberController.text);
-      storage.setString("firstName", firstNameController.text);
-      storage.setString("lastName", lastNameController.text);
-      storage.setString("email", emailController.text);
-      storage.setString("password", passwordController.text);
-      storage.setString("accountNumber", accountNumberController.text);
+      if (Response.statusCode == 200 || Response.statusCode == 201) {
+        print('response: ${Response.data}');
+        print('status:${Response.statusCode}');
 
-      notifyListeners();
+        var responseData = Response.data;
+        final storage = await SharedPreferences.getInstance();
+
+        storage.setString('phoneNumber', phoneNumberController.text);
+        storage.setString("firstName", firstNameController.text);
+        storage.setString("lastName", lastNameController.text);
+        storage.setString("email", emailController.text);
+        storage.setString("password", passwordController.text);
+        storage.setString("accountNumber", accountNumberController.text);
+        var singlad = storage.getString("firstName");
+        print("shared $singlad");
+        notifyListeners();
+
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => SignIn()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Invalid details',
+            ),
+            duration: const Duration(
+              seconds: 3,
+            ),
+          ),
+        );
+      }
     } catch (e, s) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Invalid details',
+          ),
+          duration: const Duration(
+            seconds: 3,
+          ),
+        ),
+      );
       print(e);
       print(s);
     }
@@ -112,7 +141,7 @@ class ApiDB extends ChangeNotifier {
       "password": passwordController.text,
     };
     try {
-      rep = await dio.post(
+      Response = await dio.post(
         'https://halat-mobile-bank-app.herokuapp.com/api/v1/loginUser',
         data: payLoad,
         options: Options(
@@ -120,51 +149,91 @@ class ApiDB extends ChangeNotifier {
           contentType: 'application/json',
         ),
       );
-      if (rep.statusCode == 200 || rep.statusCode == 201) {
-        print('response: ${rep.data}');
-        print('status:${rep.statusCode}');
+      if (Response.statusCode == 200 || Response.statusCode == 201) {
+        var responseData = Response.data;
+        final storage = await SharedPreferences.getInstance();
+        storage.setString('token', responseData['token']);
+        storage.setString("phoneNumber", phoneNumberController.text);
+        notifyListeners();
+        dioRetrieve(context);
+        var message = "User login successfully";
+        if (responseData['message'] == message) {
+          print("user loged in");
+        } else {
+          print('admin loggedin ');
+        }
+
+        //print('${responseData['token']}');
+
+        print('response: ${Response.data}');
+        print('status:${Response.statusCode}');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Fill all the fields and accept the terms and conditions',
+            ),
+            duration: const Duration(
+              seconds: 3,
+            ),
+          ),
+        );
       }
-      var responseData = jsonDecode(rep.data);
-      final storage = await SharedPreferences.getInstance();
-      storage.setString('token', responseData['access_token']);
-      storage.setString('phoneNumber', phoneNumberController.text);
-      notifyListeners();
     } catch (e, s) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Fill all the fields and accept the terms and conditions',
+          ),
+          duration: const Duration(
+            seconds: 3,
+          ),
+        ),
+      );
+
       print(e);
       print(s);
     }
   }
 
   Future<ClassModel?> dioRetrieve(context) async {
+    final storage = await SharedPreferences.getInstance();
+    token = await storage.getString('token');
+    notifyListeners();
     var dio = Dio(options);
 
     Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
       'Accept': '*/*',
       "Authorization": "Bearer $token",
     };
-
+    print("token: $token");
     try {
       var rep = await dio.get(
-        'https://halat-mobile-bank-app.herokuapp.com/api/v1/retrieveUser?phoneNumber=$phoneNumberController',
+        'https://halat-mobile-bank-app.herokuapp.com/api/v1/retrieveUser?phoneNumber=${phoneNumberController.text.toString()}',
         options: Options(
           headers: requestHeaders,
           method: 'GET',
         ),
       );
-      var decodeData = jsonDecode(rep.data);
-      var responseData = ClassModel.fromJson(decodeData);
+      print('GEt response: ${rep.data}');
+      print('Get status:${rep.statusCode}');
+
       if (rep.statusCode == 200 || rep.statusCode == 201) {
-        print('response: ${rep.data}');
-        print('status:${rep.statusCode}');
-        print('Decode Data: $decodeData');
+        var decodeData = rep.data;
+        var responseData = ClassModel.fromJson(decodeData);
+        accountNumber = responseData.getUser?.accountNumber;
+        notifyListeners();
+        print(accountNumber);
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => Homescreen()));
+        // print('Decode Data: $decodeData');
       }
       notifyListeners();
-      return responseData;
     } catch (e, s) {
-      print(e);
-      print(s);
+      print("get error: $e");
+      print("get location: $s");
     }
-    return null;
   }
 }
 

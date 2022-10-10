@@ -1,8 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:grazac_challenge3/models/Provider.dart';
 import 'package:grazac_challenge3/screens/auth/signin.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utilities/textfield.dart';
 
@@ -16,6 +18,7 @@ class SignUp extends StatefulWidget {
 class _SignUpState extends State<SignUp> {
   bool loading = false;
   bool toggle = true;
+  bool condition = true;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -177,54 +180,7 @@ class _SignUpState extends State<SignUp> {
                                       loading = false;
                                     });
                                   });
-
-                                  try {
-                                    await apiData.sharedPreferences();
-                                    await apiData
-                                        .dioSignUp(context)
-                                        .then((value) {
-                                      if (apiData.rep == 200 ||
-                                          apiData.rep == 201) {
-                                        apiData.emailController.clear();
-                                        apiData.accountNumberController.clear();
-                                        apiData.lastNameController.clear();
-                                        apiData.firstNameController.clear();
-                                        apiData.passwordController.clear();
-                                        apiData.phoneNumberController.clear();
-
-                                        Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (_) => SignIn()));
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: const Text(
-                                              'Account already Exist',
-                                            ),
-                                            duration: const Duration(
-                                              seconds: 3,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    });
-                                  } catch (e, s) {
-                                    print("error message: $e");
-                                    print("error message: $s");
-                                  }
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Fill all the fields and accept the terms and conditions',
-                                      ),
-                                      duration: const Duration(
-                                        seconds: 3,
-                                      ),
-                                    ),
-                                  );
+                                  await apiData.dioSignUp(context);
                                 }
                               },
                               child: Container(

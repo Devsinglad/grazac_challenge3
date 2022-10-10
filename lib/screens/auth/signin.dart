@@ -18,10 +18,19 @@ class _SignInState extends State<SignIn> {
   bool loading = false;
   bool toggle = true;
   final _formKey = GlobalKey<FormState>();
+  @override
+  void initState() {
+    // TODO: implement initState
+    Future.delayed(Duration(seconds: 0)).then((value) {
+      var apiData = Provider.of<ApiDB>(context, listen: false);
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    var apiData = Provider.of<ApiDB>(context, listen: false);
+    var apiData = Provider.of<ApiDB>(context);
+
     return SafeArea(
       child: Scaffold(
         body: Consumer<ApiDB>(
@@ -114,51 +123,13 @@ class _SignInState extends State<SignIn> {
                                     loading = false;
                                   });
                                 });
-                                try {
-                                  await apiData
-                                      .dioSignIn(context)
-                                      .then((value) {
-                                    if (apiData.rep == 200 ||
-                                        apiData.rep == 201) {
-                                      apiData.phoneNumberController.clear();
-                                      apiData.passwordController.clear();
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => Homescreen()));
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: const Text(
-                                            'wrong Phone Number or password',
-                                          ),
-                                          duration: const Duration(
-                                            seconds: 5,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  });
-                                } catch (e, s) {
-                                  print("error message: $e");
-                                  print("error message: $s");
-                                }
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Fill all the fields and accept the terms and conditions',
-                                    ),
-                                    duration: const Duration(
-                                      seconds: 3,
-                                    ),
-                                  ),
-                                );
+
+                                await apiData.dioSignIn(context);
+
+                                setState(() {
+                                  loading = false;
+                                });
                               }
-                              setState(() {
-                                loading = false;
-                              });
                             },
                             child: Container(
                               height: 50,
