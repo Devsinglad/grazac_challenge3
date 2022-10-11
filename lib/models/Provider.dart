@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:grazac_challenge3/models/getUserModel.dart';
+import 'package:grazac_challenge3/screens/adminScreen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,22 +39,26 @@ class ApiDB extends ChangeNotifier {
   var firstname;
   var lastName;
   var Response;
+  var AdminResponse;
+  var AdminStatus;
   var accountNumber;
-  Future<void> sharedPreferences() async {
-    final storage = await SharedPreferences.getInstance();
-    token = await storage.getString('token');
-    phone = await storage.getString('phoneNumber');
-    userEmail = await storage.getString('email');
-    firstname = await storage.getString('firstName');
-    lastName = await storage.getString('lastName');
-    print(phone);
-    print(userEmail);
-    print(firstname);
-    print(lastName);
-    print(token);
+  var UserFirstName;
 
-    notifyListeners();
-  }
+  // Future<void> sharedPreferences() async {
+  //   final storage = await SharedPreferences.getInstance();
+  //   token = await storage.getString('token');
+  //   phone = storage.getString('phoneNumber');
+  //   userEmail = storage.getString('email');
+  //   firstname = storage.getString('firstName');
+  //   lastName = storage.getString('lastName');
+  //   print(phone);
+  //   print(userEmail);
+  //   print(firstname);
+  //   print(lastName);
+  //   print(token);
+  //
+  //   notifyListeners();
+  // }
 
   Future<void> dioSignUp(context) async {
     final dio = Dio(options);
@@ -94,8 +100,16 @@ class ApiDB extends ChangeNotifier {
         storage.setString("email", emailController.text);
         storage.setString("password", passwordController.text);
         storage.setString("accountNumber", accountNumberController.text);
-        var singlad = storage.getString("firstName");
-        print("shared $singlad");
+
+        phone = storage.getString('phoneNumber');
+        userEmail = storage.getString('email');
+        firstname = storage.getString('firstName');
+        lastName = storage.getString('lastName');
+        print("shared $phone");
+        print("shared $userEmail");
+        print("shared $firstname");
+        print("shared $lastName");
+
         notifyListeners();
 
         Navigator.pushReplacement(
@@ -156,14 +170,6 @@ class ApiDB extends ChangeNotifier {
         storage.setString("phoneNumber", phoneNumberController.text);
         notifyListeners();
         dioRetrieve(context);
-        var message = "User login successfully";
-        if (responseData['message'] == message) {
-          print("user loged in");
-        } else {
-          print('admin loggedin ');
-        }
-
-        //print('${responseData['token']}');
 
         print('response: ${Response.data}');
         print('status:${Response.statusCode}');
@@ -171,10 +177,10 @@ class ApiDB extends ChangeNotifier {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
-              'Fill all the fields and accept the terms and conditions',
+              'Invalid Details',
             ),
             duration: const Duration(
-              seconds: 3,
+              seconds: 5,
             ),
           ),
         );
@@ -183,10 +189,10 @@ class ApiDB extends ChangeNotifier {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'Fill all the fields and accept the terms and conditions',
+            'Invalid Details',
           ),
           duration: const Duration(
-            seconds: 3,
+            seconds: 7,
           ),
         ),
       );
@@ -235,6 +241,124 @@ class ApiDB extends ChangeNotifier {
       print("get location: $s");
     }
   }
+
+  Future<void> dioAdminSignIn(context) async {
+    var dio = Dio(options);
+
+    Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': '*/*',
+      "Authorization": "Bearer $token",
+    };
+    var payLoad = {
+      "phoneNumber": phoneNumberController.text,
+      "password": passwordController.text,
+    };
+    try {
+      AdminResponse = await dio.post(
+        'https://halat-mobile-bank-app.herokuapp.com/api/v1/loginAdmin',
+        data: payLoad,
+        options: Options(
+          headers: requestHeaders,
+          contentType: 'application/json',
+        ),
+      );
+
+      if (AdminResponse.statusCode == 200 || AdminResponse.statusCode == 201) {
+        notifyListeners();
+        // dioRetrieve(context);
+        var responseData = AdminResponse.data;
+        final storage = await SharedPreferences.getInstance();
+        storage.setString('token', responseData['token']);
+        storage.setString("phoneNumber", phoneNumberController.text);
+        notifyListeners();
+        print('response: ${AdminResponse.data}');
+        print('status:${AdminResponse.statusCode}');
+        Navigator.push(context, MaterialPageRoute(builder: (_) => AdminPage()));
+        notifyListeners();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Fill all the fields and accept the terms and conditions',
+            ),
+            duration: const Duration(
+              seconds: 3,
+            ),
+          ),
+        );
+      }
+    } catch (e, s) {
+      if (AdminResponse != Response) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'User logged in ',
+            ),
+            duration: const Duration(
+              seconds: 3,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Invalid Details ',
+            ),
+            duration: const Duration(
+              seconds: 3,
+            ),
+          ),
+        );
+      }
+      print(e);
+      print(s);
+    }
+  }
+
+  Future<GetUserModel> AdminGetUser(context) async {
+    var responseData;
+    final storage = await SharedPreferences.getInstance();
+    token = await storage.getString('token');
+    notifyListeners();
+    var dio = Dio(options);
+
+    Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': '*/*',
+      "Authorization": "Bearer $token",
+    };
+
+    try {
+      var rep = await dio.get(
+        'https://halat-mobile-bank-app.herokuapp.com/api/v1/getAllUsers',
+        options: Options(
+          headers: requestHeaders,
+          method: 'GET',
+        ),
+      );
+      print('Get status:${rep.statusCode}');
+      print('GEt response: ${rep.data}');
+
+      if (rep.statusCode == 200 || rep.statusCode == 201) {
+        var decodeData = rep.data;
+        responseData = GetUserModel.fromJson(decodeData);
+        //UserFirstName = responseData.getUsers?["firstName"].toString();
+        notifyListeners();
+
+        // print('Decode Data: $decodeData');
+
+      }
+
+      notifyListeners();
+      return responseData;
+    } catch (e, s) {
+      throw Exception('something went wrong: $e');
+      print("get error: $e");
+      print("get location: $s");
+    }
+  }
 }
 
 // using http package!!
@@ -248,7 +372,7 @@ class ApiDB extends ChangeNotifier {
 //   var payload = {
 //     "name": "singlad2",
 //     "phoneNumber": "0444444444227",
-//     "password": "singlad1@",
+//     "password": "singlad196",
 //     "email": "singlad2@gmail.com"
 //     // "name": nameController.text,
 //     // "phoneNumber": phoneNumbercontroller,

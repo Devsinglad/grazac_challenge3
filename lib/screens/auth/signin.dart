@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:grazac_challenge3/screens/adminScreen.dart';
 import 'package:grazac_challenge3/screens/auth/signUp.dart';
 import 'package:provider/provider.dart';
 
@@ -124,7 +125,12 @@ class _SignInState extends State<SignIn> {
                                   });
                                 });
 
-                                await apiData.dioSignIn(context);
+                                if (apiData.AdminResponse ==
+                                    apiData.dioAdminSignIn(context)) {
+                                  await apiData.dioAdminSignIn(context);
+                                } else {
+                                  await apiData.dioSignIn(context);
+                                }
 
                                 setState(() {
                                   loading = false;
