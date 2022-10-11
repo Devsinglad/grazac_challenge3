@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:grazac_challenge3/screens/adminScreen.dart';
+import 'package:grazac_challenge3/screens/admin/adminScreen.dart';
 import 'package:grazac_challenge3/screens/auth/signUp.dart';
 import 'package:provider/provider.dart';
 
@@ -30,7 +30,7 @@ class _SignInState extends State<SignIn> {
 
   @override
   Widget build(BuildContext context) {
-    var apiData = Provider.of<ApiDB>(context);
+    var apiData = Provider.of<ApiDB>(context, listen: false);
 
     return SafeArea(
       child: Scaffold(

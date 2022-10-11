@@ -4,11 +4,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:grazac_challenge3/models/TotalUserModel.dart';
 import 'package:grazac_challenge3/models/getUserModel.dart';
-import 'package:grazac_challenge3/screens/adminScreen.dart';
+import 'package:grazac_challenge3/screens/admin/adminScreen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/admin/getTotalUser.dart';
 import '../screens/auth/signin.dart';
 import '../screens/homeScreen.dart';
 import 'classModel.dart';
@@ -43,6 +45,9 @@ class ApiDB extends ChangeNotifier {
   var AdminStatus;
   var accountNumber;
   var UserFirstName;
+  var total;
+  bool isLoading = false;
+  List<Map<String, dynamic>> demoData = [];
 
   // Future<void> sharedPreferences() async {
   //   final storage = await SharedPreferences.getInstance();
@@ -317,8 +322,7 @@ class ApiDB extends ChangeNotifier {
     }
   }
 
-  Future<GetUserModel> AdminGetUser(context) async {
-    var responseData;
+  Future<GetUserModel?> AdminGetUser(context) async {
     final storage = await SharedPreferences.getInstance();
     token = await storage.getString('token');
     notifyListeners();
@@ -331,6 +335,8 @@ class ApiDB extends ChangeNotifier {
     };
 
     try {
+      isLoading = true;
+      notifyListeners();
       var rep = await dio.get(
         'https://halat-mobile-bank-app.herokuapp.com/api/v1/getAllUsers',
         options: Options(
@@ -338,83 +344,132 @@ class ApiDB extends ChangeNotifier {
           method: 'GET',
         ),
       );
+      // print('Get status:${rep.statusCode}');
+      // print('GEt response: ${rep.data}');
+
+      if (rep.statusCode == 200 || rep.statusCode == 201) {
+        isLoading = false;
+        //responseData = GetUserModel.fromJson(decodeData);
+        demoData.clear();
+        demoData.add(rep.data);
+
+        print(demoData);
+
+        notifyListeners();
+      }
+
+      notifyListeners();
+    } catch (e, s) {
+      throw Exception('something went wrong: $e');
+    }
+  }
+
+  Future<void> AdminBlockUser(context) async {
+    final storage = await SharedPreferences.getInstance();
+    token = await storage.getString('token');
+    notifyListeners();
+    var dio = Dio(options);
+
+    Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': '*/*',
+      "Authorization": "Bearer $token",
+    };
+
+    try {
+      isLoading = true;
+      notifyListeners();
+      var rep = await dio.patch(
+        'https://halat-mobile-bank-app.herokuapp.com/api/v1/block?email=${emailController.text}',
+        options: Options(
+          headers: requestHeaders,
+          method: 'PATCH',
+        ),
+      );
       print('Get status:${rep.statusCode}');
       print('GEt response: ${rep.data}');
 
       if (rep.statusCode == 200 || rep.statusCode == 201) {
-        var decodeData = rep.data;
-        responseData = GetUserModel.fromJson(decodeData);
-        //UserFirstName = responseData.getUsers?["firstName"].toString();
+        isLoading = false;
+
         notifyListeners();
-
-        // print('Decode Data: $decodeData');
-
       }
 
       notifyListeners();
-      return responseData;
     } catch (e, s) {
       throw Exception('something went wrong: $e');
-      print("get error: $e");
-      print("get location: $s");
+    }
+  }
+
+  // Future<GetUserTotalModel?> AdminGetTotalUser(context) async {
+  //   final storage = await SharedPreferences.getInstance();
+  //   token = await storage.getString('token');
+  //   notifyListeners();
+  //   var dio = Dio(options);
+  //
+  //   Map<String, String> requestHeaders = {
+  //     'Content-type': 'application/json',
+  //     'Accept': '*/*',
+  //     "Authorization": "Bearer $token",
+  //   };
+  //
+  //   try {
+  //     isLoading = true;
+  //     notifyListeners();
+  //     var rep = await dio.get(
+  //       'https://halat-mobile-bank-app.herokuapp.com/api/v1/countUsers',
+  //       options: Options(
+  //         headers: requestHeaders,
+  //         method: 'GET',
+  //       ),
+  //     );
+  //     // print('Get status:${rep.statusCode}');
+  //     // print('GEt response: ${rep.data}');
+  //
+  //     if (rep.statusCode == 200 || rep.statusCode == 201) {
+  //       isLoading = false;
+  //       var decodeData = rep.data;
+  //       var responseData = GetUserTotalModel.fromJson(decodeData);
+  //       var data = responseData.usercount;
+  //       print(data);
+  //
+  //       notifyListeners();
+  //     }
+  //
+  //     notifyListeners();
+  //   } catch (e, s) {
+  //     throw Exception('something went wrong: $e');
+  //   }
+  // }
+  //choose to use hhtp here!!
+  Future<GetUserTotalModel?> userData(context) async {
+    final storage = await SharedPreferences.getInstance();
+    token = await storage.getString('token');
+    notifyListeners();
+    Map<String, String> requestHeaders = {
+      'Content-type': 'application/json',
+      'Accept': '*/*',
+      "Authorization": "Bearer $token ",
+    };
+    try {
+      var url = Uri.parse(
+          'https://halat-mobile-bank-app.herokuapp.com/api/v1/countUsers');
+      var response = await http.get(url, headers: requestHeaders);
+      print(response.body);
+      print(response.statusCode);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        var decodeData = jsonDecode(response.body);
+        var responseModel = GetUserTotalModel.fromJson(decodeData);
+        total = responseModel.usercount;
+        print(total);
+
+        notifyListeners();
+
+        print("Response:${response.body}");
+        return responseModel;
+      }
+    } catch (e, s) {
+      print('Error $e');
     }
   }
 }
-
-// using http package!!
-// Future<void> postSignUp(context) async {
-//   var url = Uri.parse('https://biggievet.herokuapp.com/api/user/register');
-//   var token;
-//   Map<String, String> requestHeaders = {
-//     'Content-type': 'application/json',
-//     'Accept': '*/*',
-//   };
-//   var payload = {
-//     "name": "singlad2",
-//     "phoneNumber": "0444444444227",
-//     "password": "singlad196",
-//     "email": "singlad2@gmail.com"
-//     // "name": nameController.text,
-//     // "phoneNumber": phoneNumbercontroller,
-//     // "password": passwordcontroller.text,
-//     // "email": emailcontroller.text,
-//   };
-//   notifyListeners();
-//   try {
-//     var data = await http.post(
-//       url,
-//       headers: requestHeaders,
-//       body: jsonEncode(payload),
-//     );
-//     if (data.statusCode == 200 || data.statusCode == 201) {
-//       print('Response: ${data.statusCode}');
-//       print('Response: ${data.body}');
-//       notifyListeners();
-//     } else {
-//       throw 'error dey';
-//     }
-//   } catch (e, s) {
-//     print(e);
-//     print(s);
-//   }
-// }
-//
-// Future<void> postLogin() async {
-//   var data;
-//   var url = Uri.parse("https://biggievet.herokuapp.com//api/user/login");
-//   Map<String, String> requestHeaders = {
-//     'Content-type': 'application/json',
-//     'Accept': '*/*',
-//   };
-//   var payload = {
-//     "email": emailcontroller.text,
-//     "password": passwordcontroller.text,
-//   };
-//
-//   notifyListeners();
-//   data = await http.post(
-//     url,
-//     headers: requestHeaders,
-//     body: jsonEncode(payload),
-//   );
-// }
